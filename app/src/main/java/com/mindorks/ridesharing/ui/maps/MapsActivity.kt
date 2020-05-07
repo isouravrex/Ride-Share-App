@@ -1,33 +1,46 @@
 package com.mindorks.ridesharing.ui.maps
 
+import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.google.android.gms.common.api.Status
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.*
 import com.google.android.gms.maps.model.*
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.AutocompleteActivity
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.mindorks.ridesharing.R
 import com.mindorks.ridesharing.data.network.NetworkService
 import com.mindorks.ridesharing.utils.MapUtils
 import com.mindorks.ridesharing.utils.PermissionUtils
 import com.mindorks.ridesharing.utils.ViewUtils
+import kotlinx.android.synthetic.main.activity_maps.*
 
 class MapsActivity : AppCompatActivity(),MapsView, OnMapReadyCallback {
     companion object{
         private const val TAG = "MapsActivity"
         private const val LOCATION_PERMISSION_REQUEST_CODE=999
+        private const val PICKUP_REQUEST_CODE=1
+        private const val DROP_REQUEST_CODE=2
+
     }
     private lateinit var presenter: MapsPresenter
     private lateinit var googleMap: GoogleMap
     private var fusedLocationProviderClient:FusedLocationProviderClient?=null
     private lateinit var locationCallback: LocationCallback
     private var currentLatLng:LatLng?=null
+    private var pickUpLatLng:LatLng?=null
+    private var dropLatLng:LatLng?=null
     private val nearbyMarkerList = arrayListOf<Marker>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,6 +52,23 @@ class MapsActivity : AppCompatActivity(),MapsView, OnMapReadyCallback {
         mapFragment.getMapAsync(this)
         presenter= MapsPresenter(NetworkService())
         presenter.onAttach(this)
+        setupClickListener()
+    }
+
+    private fun setupClickListener() {
+        pickUpTextView.setOnClickListener {
+             launchLocationAutoCompleteActivity(PICKUP_REQUEST_CODE)
+        }
+        dropTextView.setOnClickListener {
+            launchLocationAutoCompleteActivity(DROP_REQUEST_CODE)
+        }
+    }
+
+    private fun launchLocationAutoCompleteActivity(requestCode: Int){
+        val fields:List<Place.Field> = listOf(Place.Field.ID,Place.Field.NAME,Place.Field.LAT_LNG)
+        val intent =Autocomplete.IntentBuilder(AutocompleteActivityMode.OVERLAY,fields).build(this)
+        startActivityForResult(intent,requestCode)
+
     }
 
     private fun moveCamera(latLng: LatLng){
@@ -54,6 +84,11 @@ class MapsActivity : AppCompatActivity(),MapsView, OnMapReadyCallback {
     private fun addCarMarkerAndGet(latLng: LatLng): Marker{
         val bitmapDescriptor = BitmapDescriptorFactory.fromBitmap(MapUtils.getCarBitmap(this))
         return  googleMap.addMarker(MarkerOptions().position(latLng).flat(true).icon(bitmapDescriptor))
+    }
+
+    private fun setCurrentLocationAsPickUp(){
+        pickUpLatLng=currentLatLng
+        pickUpTextView.text=getString(R.string.current_location)
     }
 
     private fun enableMyLocationOnMap(){
@@ -74,6 +109,7 @@ class MapsActivity : AppCompatActivity(),MapsView, OnMapReadyCallback {
                 for(location in locationResult.locations){
                     if(currentLatLng==null){
                         currentLatLng= LatLng(location.latitude,location.longitude)
+                        setCurrentLocationAsPickUp()
                         enableMyLocationOnMap()
                         moveCamera(currentLatLng!!)
                         animateCamera(currentLatLng!!)
@@ -134,6 +170,35 @@ class MapsActivity : AppCompatActivity(),MapsView, OnMapReadyCallback {
                 }
                 else{
                     Toast.makeText(this,"Location Permission not Granted",Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if(requestCode== PICKUP_REQUEST_CODE||requestCode== DROP_REQUEST_CODE){
+            when(resultCode){
+                Activity.RESULT_OK->{
+                    val place = Autocomplete.getPlaceFromIntent(data!!)
+                    when(requestCode){
+                            PICKUP_REQUEST_CODE->{
+                                pickUpTextView.text=place.name
+                                pickUpLatLng=place.latLng
+                            }
+                            DROP_REQUEST_CODE->{
+                                dropTextView.text=place.name
+                                dropLatLng=place.latLng
+
+                        }
+                    }
+                }
+                AutocompleteActivity.RESULT_ERROR->{
+                        val status: Status = Autocomplete.getStatusFromIntent(data!!)
+                    Log.d(TAG,status.statusMessage!!)
+                }
+                Activity.RESULT_CANCELED->{
+
                 }
             }
         }

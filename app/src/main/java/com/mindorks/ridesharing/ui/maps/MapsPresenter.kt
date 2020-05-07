@@ -37,8 +37,16 @@ class MapsPresenter(private val networkService: NetworkService): WebSocketListen
         jsonObject.put(Constants.LAT,latLng.latitude)
         jsonObject.put(Constants.LNG,latLng.longitude)
         webSocket.sendMessage(jsonObject.toString())
+    }
 
-
+    fun requestcab(pickUpLatLng: LatLng,dropLatLng: LatLng){
+        val jsonObject =JSONObject()
+        jsonObject.put(Constants.TYPE,Constants.REQUEST_CAB)
+        jsonObject.put("pickUpLat",pickUpLatLng.latitude)
+        jsonObject.put("pickUpLng",pickUpLatLng.longitude)
+        jsonObject.put("dropLat",dropLatLng.latitude)
+        jsonObject.put("dropLng",dropLatLng.longitude)
+        webSocket.sendMessage(jsonObject.toString())
     }
 
     override fun onConnect() {
