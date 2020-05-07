@@ -7,6 +7,8 @@
     <string name="pickup_location">Pickup Location</string>
     <string name="current_location">Current Location</string>
     <string name="request_cab">Request Cab</string>
+    <string name="requesting_your_cab">Requesting Your Cab</string>
+    <string name="your_cab_is_booked">Your Cab Is Booked</string>
 
 
 </resources>
