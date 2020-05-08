@@ -50,6 +50,10 @@ class MapsActivity : AppCompatActivity(),MapsView, OnMapReadyCallback {
     private val nearbyMarkerList = arrayListOf<Marker>()
     private var originMarker: Marker?=null
     private var destinationMarker: Marker?=null
+    private var movingCabMarker: Marker?=null
+    private var previousLatLngFromServer: LatLng?=null
+    private var currentLatLngFromServer: LatLng?=null
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -289,6 +293,49 @@ class MapsActivity : AppCompatActivity(),MapsView, OnMapReadyCallback {
     }
 
     override fun updateCabLocation(latLng: LatLng) {
-        
+        if(movingCabMarker==null){
+            movingCabMarker=addCarMarkerAndGet(latLng)
+        }
+        if(previousLatLngFromServer==null){
+              currentLatLngFromServer=latLng
+            previousLatLngFromServer=currentLatLngFromServer
+            movingCabMarker?.position=currentLatLngFromServer
+            movingCabMarker?.setAnchor(0.5f,0.5f)
+            animateCamera(currentLatLngFromServer!!)
+        }else{
+            previousLatLngFromServer=currentLatLngFromServer
+            currentLatLngFromServer=latLng
+            val valueAnimator=AnimationUtils.cabAnimator()
+            valueAnimator.addUpdateListener { va ->
+                if(currentLatLngFromServer!=null&&previousLatLngFromServer!=null) {
+                    val multiplier = va.animatedFraction
+                    val nextLocation =LatLng(
+                        multiplier*currentLatLngFromServer!!.latitude+(1-multiplier)*previousLatLngFromServer!!.latitude,
+                        multiplier*currentLatLngFromServer!!.longitude+(1-multiplier)*previousLatLngFromServer!!.longitude
+                        )
+                    movingCabMarker?.position=nextLocation
+                    val rotation=MapUtils.getRotation(previousLatLngFromServer!!,nextLocation)
+                    if(!rotation.isNaN()){
+                        movingCabMarker?.rotation=rotation
+                    }
+                    movingCabMarker?.setAnchor(0.5f,0.5f)
+                    animateCamera(nextLocation)
+                }
+            }
+            valueAnimator.start()
+        }
+    }
+
+    override fun informCabIsArriving() {
+        statusTextView.text="Your Cab is Arriving"
+
+    }
+
+    override fun informCabArrived() {
+        statusTextView.text="Your Cab Has Arrived"
+        grayPolyLine?.remove()
+        blackPolyLine?.remove()
+        originMarker?.remove()
+        destinationMarker?.remove()
     }
 }
