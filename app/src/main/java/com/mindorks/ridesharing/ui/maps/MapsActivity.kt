@@ -338,4 +338,17 @@ class MapsActivity : AppCompatActivity(),MapsView, OnMapReadyCallback {
         originMarker?.remove()
         destinationMarker?.remove()
     }
+
+    override fun informTripStart() {
+        statusTextView.text=getString(R.string.you_are_on_a_trip)
+        previousLatLngFromServer=null
+    }
+
+    override fun informTripEnd() {
+        statusTextView.text="Trip Ended"
+        grayPolyLine?.remove()
+        blackPolyLine?.remove()
+        originMarker?.remove()
+        destinationMarker?.remove()
+    }
 }

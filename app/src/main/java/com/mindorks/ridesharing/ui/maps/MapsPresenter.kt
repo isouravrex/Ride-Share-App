@@ -64,7 +64,7 @@ class MapsPresenter(private val networkService: NetworkService): WebSocketListen
             Constants.CAB_BOOKED->{
                 view?.informCabBooked()
             }
-            Constants.PICKUP_PATH->{
+            Constants.PICKUP_PATH, Constants.TRIP_PATH ->{
                 val jsonArray = jsonObject.getJSONArray("path")
                 val pickUpPath = arrayListOf<LatLng>()
                 for(i in  0 until jsonArray.length()){
@@ -85,6 +85,12 @@ class MapsPresenter(private val networkService: NetworkService): WebSocketListen
             }
             Constants.CAB_ARRIVED ->{
                 view?.informCabArrived()
+            }
+            Constants.TRIP_START ->{
+                view?.informTripStart()
+            }
+            Constants.TRIP_END ->{
+                view?.informTripEnd()
             }
         }
 
